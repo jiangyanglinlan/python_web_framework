@@ -112,6 +112,24 @@ class GJH(object):
                 _thread.start_new_thread(self.process_request, (connection,))
 
 
+class Blueprint(object):
+    '''
+    蓝图
+    '''
+    def __init__(self, name='blueprint'):
+        self.name = name
+        self.routes = {}
+
+    def route(self, *args, **kwargs):
+        path = args[0]
+        def common(func):
+            self.routes.update({path: func})
+            def _deco(*args, **kwargs):
+                return func(*args, **kwargs)
+            return _deco
+        return common
+
+
 # __file__ 就是本文件的名字
 # 得到用于加载模板的目录
 path = '{}/templates/'.format(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
