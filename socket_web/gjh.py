@@ -1,5 +1,9 @@
 import socket
 import _thread
+import os
+
+from werkzeug.routing import Map, Rule, MapAdapter
+from jinja2 import Environment, FileSystemLoader
 
 from socket_web.request import Request
 
@@ -9,7 +13,7 @@ class GJH(object):
         self.e = {
             404: b'HTTP/1.1 404 NOT FOUND\r\n\r\n<h1>404 NOT FOUND</h1>',
         }  # error
-        self.routes = {}  # 路由
+        self.routes = None  # 路由
 
     def error(self, request, code=404):
         '''
@@ -26,7 +30,11 @@ class GJH(object):
         :param route:
         :return:
         '''
-        self.routes.update(new_route)
+        url_map = Map()
+        for k, v in new_route.items():
+            rule = Rule(k, endpoint=v)
+            url_map.add(rule)
+            self.routes = url_map.bind(k)
 
     @staticmethod
     def parse_path(path):
@@ -52,7 +60,12 @@ class GJH(object):
         path, query = self.parse_path(path)
         request.path = path
         request.query = query
-        response = self.routes.get(path, self.error)
+        try:
+            response = self.routes.match(path)[0]
+        except:
+            response = None
+        if response is None:
+            response = self.error
         return response(request)
 
     def process_request(self, connection):
@@ -97,3 +110,53 @@ class GJH(object):
             while True:
                 connection, address = s.accept()
                 _thread.start_new_thread(self.process_request, (connection,))
+
+
+# __file__ 就是本文件的名字
+# 得到用于加载模板的目录
+path = '{}/templates/'.format(os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+# 创建一个加载器, jinja2 会从这个目录中加载模板
+loader = FileSystemLoader(path)
+# 用加载器创建一个环境, 有了它才能读取模板文件
+env = Environment(loader=loader)
+
+
+def template(path, **kwargs):
+    """
+    本函数接受一个路径和一系列参数
+    读取模板并渲染返回
+    """
+    t = env.get_template(path)
+    return t.render(**kwargs)
+
+
+def response_with_headers(headers, status_code=200):
+    '''
+    自定义 header
+    '''
+    if 'Content-Type' not in headers:
+        headers['Content-Type'] = 'text/html'
+    header = f'HTTP/1.1 {status_code} OK\r\n'
+    header += ''.join([f'{k}: {v}\r\n' for k, v in headers.items()])
+    return header
+
+
+def render_template(body, headers=None):
+    header = response_with_headers({})
+    if headers is not None:
+        header = response_with_headers(headers)
+    else:
+        header = response_with_headers({})
+    r = header + '\r\n' + body
+    return r.encode(encoding='utf-8')
+
+
+def redirect(location, headers=None):
+    if headers is None:
+        headers = {
+            'Content-Type': 'text/html',
+        }
+    headers['Location'] = location
+    header = response_with_headers(headers, 302)
+    r = header + '\r\n' + ''
+    return r.encode(encoding='utf-8')
