@@ -36,6 +36,13 @@ class GJH(object):
             url_map.add(rule)
             self.routes = url_map.bind(k)
 
+    def register_blueprint(self, blue_print):
+        url_map = Map()
+        for k, v in blue_print.routes.items():
+            rule = Rule(k, endpoint=v)
+            url_map.add(rule)
+            self.routes = url_map.bind(k)
+
     @staticmethod
     def parse_path(path):
         '''
