@@ -67,8 +67,10 @@ class GJH(object):
         path, query = self.parse_path(path)
         request.path = path
         request.query = query
+        kwargs = {}
         try:
             response, kwargs = self.routes.match(path)
+            print('kwargs =', kwargs)
         except:
             response = None
         if response is None:
