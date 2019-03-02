@@ -14,6 +14,7 @@ class GJH(object):
             404: b'HTTP/1.1 404 NOT FOUND\r\n\r\n<h1>404 NOT FOUND</h1>',
         }  # error
         self.routes = None  # 路由
+        self.url_map = Map()
 
     def error(self, request, code=404):
         '''
@@ -27,21 +28,20 @@ class GJH(object):
     def update_route(self, new_route):
         '''
         添加路由
-        :param route:
-        :return:
         '''
-        url_map = Map()
         for k, v in new_route.items():
             rule = Rule(k, endpoint=v)
-            url_map.add(rule)
-            self.routes = url_map.bind(k)
+            self.url_map.add(rule)
+            self.routes = self.url_map.bind(k)
 
     def register_blueprint(self, blue_print):
-        url_map = Map()
+        '''
+        注册蓝图
+        '''
         for k, v in blue_print.routes.items():
             rule = Rule(k, endpoint=v)
-            url_map.add(rule)
-            self.routes = url_map.bind(k)
+            self.url_map.add(rule)
+            self.routes = self.url_map.bind(k)
 
     @staticmethod
     def parse_path(path):
@@ -70,7 +70,6 @@ class GJH(object):
         kwargs = {}
         try:
             response, kwargs = self.routes.match(path)
-            print('kwargs =', kwargs)
         except:
             response = None
         if response is None:
