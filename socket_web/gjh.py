@@ -68,12 +68,12 @@ class GJH(object):
         request.path = path
         request.query = query
         try:
-            response = self.routes.match(path)[0]
+            response, kwargs = self.routes.match(path)
         except:
             response = None
         if response is None:
             response = self.error
-        return response(request)
+        return response(request, **kwargs)
 
     def process_request(self, connection):
         buffer_size = 1024
@@ -129,12 +129,12 @@ class Blueprint(object):
 
     def route(self, *args, **kwargs):
         path = args[0]
-        def common(func):
+        def _common(func):
             self.routes.update({path: func})
             def _deco(*args, **kwargs):
                 return func(*args, **kwargs)
             return _deco
-        return common
+        return _common
 
 
 # __file__ 就是本文件的名字
